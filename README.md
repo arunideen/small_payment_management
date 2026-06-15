@@ -12,6 +12,7 @@ budgets, OWL dashboards and a reporting pack.
 |---|---|
 | [`addons/custom/small_payment_management/`](addons/custom/small_payment_management/) | The single Odoo module (technical name `small_payment_management`) |
 | [`odoo19-petty-cash-expense-solution-report.md`](odoo19-petty-cash-expense-solution-report.md) | Full solution architecture & implementation report |
+| [`docs/workflow.md`](docs/workflow.md) | Workflow diagrams (end-to-end, lifecycle, approval engine, budget, petty cash) |
 
 ## Status
 
