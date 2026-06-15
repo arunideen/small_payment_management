@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Wizard forms (opened by document buttons). Minimal arches for skeleton. -->
+
+    <record id="view_approval_info_request_wizard_form" model="ir.ui.view">
+        <field name="name">approval.info.request.wizard.form</field>
+        <field name="model">approval.info.request.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Request for Information">
+                <group>
+                    <field name="target_id"/>
+                    <field name="attachment_required"/>
+                    <field name="question"/>
+                </group>
+                <footer>
+                    <button name="action_send" type="object" string="Send" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_approval_delegate_wizard_form" model="ir.ui.view">
+        <field name="name">approval.delegate.wizard.form</field>
+        <field name="model">approval.delegate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Delegate Approval">
+                <group>
+                    <field name="delegate_to_id"/>
+                    <field name="scope"/>
+                    <field name="date_from" invisible="scope != 'standing'"/>
+                    <field name="date_to" invisible="scope != 'standing'"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button name="action_delegate" type="object" string="Delegate" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_approval_amend_wizard_form" model="ir.ui.view">
+        <field name="name">approval.amend.wizard.form</field>
+        <field name="model">approval.amend.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Amend Approvers">
+                <group>
+                    <field name="mode"/>
+                    <field name="user_id"/>
+                    <field name="position" invisible="mode != 'add'"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Apply" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

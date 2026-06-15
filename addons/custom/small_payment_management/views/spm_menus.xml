@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- OWL dashboard client actions (assets in dashboard/static/src) -->
+    <record id="action_spm_management_dashboard" model="ir.actions.client">
+        <field name="name">Management Dashboard</field>
+        <field name="tag">spm_management_dashboard</field>
+    </record>
+
+    <record id="action_spm_my_wallet" model="ir.actions.client">
+        <field name="name">My Wallet</field>
+        <field name="tag">spm_my_wallet</field>
+    </record>
+
+    <!-- Root application menu -->
+    <menuitem id="menu_spm_root" name="Small Payments" sequence="55"/>
+
+    <!-- Dashboards -->
+    <menuitem id="menu_spm_dashboards" name="Dashboards"
+              parent="menu_spm_root" sequence="10"/>
+    <menuitem id="menu_spm_management_dashboard" name="Management Dashboard"
+              parent="menu_spm_dashboards"
+              action="action_spm_management_dashboard" sequence="10"/>
+    <menuitem id="menu_spm_my_wallet" name="My Wallet"
+              parent="menu_spm_dashboards"
+              action="action_spm_my_wallet" sequence="20"/>
+
+    <!-- Petty Cash -->
+    <menuitem id="menu_spm_petty_cash" name="Petty Cash"
+              parent="menu_spm_root" sequence="20"/>
+    <menuitem id="menu_spm_pc_voucher" name="Disbursement Vouchers"
+              parent="menu_spm_petty_cash"
+              action="action_spm_petty_cash_voucher" sequence="10"/>
+    <menuitem id="menu_spm_pc_topup" name="Top-ups"
+              parent="menu_spm_petty_cash"
+              action="action_spm_petty_cash_topup" sequence="20"/>
+    <menuitem id="menu_spm_pc_float" name="Floats"
+              parent="menu_spm_petty_cash"
+              action="action_spm_petty_cash_float" sequence="30"/>
+    <menuitem id="menu_spm_pc_recon" name="Reconciliations"
+              parent="menu_spm_petty_cash"
+              action="action_spm_petty_cash_recon" sequence="40"/>
+
+    <!-- Expenses -->
+    <menuitem id="menu_spm_expenses" name="Expenses"
+              parent="menu_spm_root" sequence="30"/>
+    <menuitem id="menu_spm_advance" name="Cash Advances"
+              parent="menu_spm_expenses"
+              action="action_spm_advance" sequence="10"/>
+    <menuitem id="menu_spm_reimbursement_batch" name="Reimbursement Batches"
+              parent="menu_spm_expenses"
+              action="action_spm_reimbursement_batch" sequence="20"/>
+
+    <!-- Budgets -->
+    <menuitem id="menu_spm_budgets" name="Budgets"
+              parent="menu_spm_root" sequence="40"/>
+    <menuitem id="menu_spm_budget" name="Budgets"
+              parent="menu_spm_budgets"
+              action="action_spm_budget" sequence="10"/>
+    <menuitem id="menu_spm_budget_reservation" name="Reservations"
+              parent="menu_spm_budgets"
+              action="action_spm_budget_reservation" sequence="20"/>
+
+    <!-- Approvals -->
+    <menuitem id="menu_spm_approvals" name="Approvals"
+              parent="menu_spm_root" sequence="50"/>
+    <menuitem id="menu_spm_approval_request" name="Approval Requests"
+              parent="menu_spm_approvals"
+              action="action_approval_request_line" sequence="10"/>
+    <menuitem id="menu_spm_approval_matrix" name="Approval Matrices"
+              parent="menu_spm_approvals"
+              action="action_approval_matrix"
+              groups="small_payment_management.group_approval_admin" sequence="20"/>
+    <menuitem id="menu_spm_approval_delegation" name="Delegations"
+              parent="menu_spm_approvals"
+              action="action_approval_delegation" sequence="30"/>
+    <menuitem id="menu_spm_approval_amendment_log" name="Amendment Log"
+              parent="menu_spm_approvals"
+              action="action_approval_amendment_log"
+              groups="small_payment_management.group_approval_admin" sequence="40"/>
+
+    <!-- Configuration -->
+    <menuitem id="menu_spm_config" name="Configuration"
+              parent="menu_spm_root" sequence="90"
+              groups="small_payment_management.group_spm_admin"/>
+    <menuitem id="menu_spm_config_branch" name="Branches"
+              parent="menu_spm_config"
+              action="action_spm_branch" sequence="10"/>
+    <menuitem id="menu_spm_config_type" name="Expense Types"
+              parent="menu_spm_config"
+              action="action_spm_expense_type" sequence="20"/>
+    <menuitem id="menu_spm_config_category" name="Expense Categories"
+              parent="menu_spm_config"
+              action="action_spm_expense_category" sequence="30"/>
+    <menuitem id="menu_spm_config_policy" name="Policy Rules"
+              parent="menu_spm_config"
+              action="action_spm_policy_rule" sequence="40"/>
+
+</odoo>

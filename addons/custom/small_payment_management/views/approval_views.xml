@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_approval_matrix" model="ir.actions.act_window">
+        <field name="name">Approval Matrices</field>
+        <field name="res_model">approval.matrix</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_approval_delegation" model="ir.actions.act_window">
+        <field name="name">Delegations</field>
+        <field name="res_model">approval.delegation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_approval_request_line" model="ir.actions.act_window">
+        <field name="name">Approval Requests</field>
+        <field name="res_model">approval.request.line</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_approval_amendment_log" model="ir.actions.act_window">
+        <field name="name">Amendment Log</field>
+        <field name="res_model">approval.amendment.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

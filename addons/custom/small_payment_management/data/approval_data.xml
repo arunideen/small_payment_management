@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Sequences -->
+    <record id="seq_approval_matrix" model="ir.sequence">
+        <field name="name">Approval Matrix</field>
+        <field name="code">approval.matrix</field>
+        <field name="prefix">AMX/</field>
+        <field name="padding">4</field>
+    </record>
+
+    <!-- SLA escalation cron (report §7.4) -->
+    <record id="cron_approval_escalate" model="ir.cron">
+        <field name="name">Approval: SLA escalation</field>
+        <field name="model_id" ref="model_approval_request_line"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_escalate()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active" eval="False"/>
+    </record>
+
+    <!-- Mail template used for tier notifications (placeholder) -->
+    <record id="mail_template_approval_pending" model="mail.template">
+        <field name="name">Approval: action required</field>
+        <field name="model_id" ref="model_approval_request_line"/>
+        <field name="subject">An approval is awaiting your action</field>
+        <field name="body_html" type="html">
+            <div>You have a document pending your approval.</div>
+        </field>
+    </record>
+
+</odoo>

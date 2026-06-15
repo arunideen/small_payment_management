@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="spm.ManagementDashboard">
+        <div class="o_spm_dashboard p-4">
+            <h2>SPM — Management Dashboard</h2>
+            <p class="text-muted">
+                KPI strip, spend trend, budget vs actual, breakdown donuts,
+                pending-approval ageing, top 10, float health, exceptions (report §9.1).
+            </p>
+        </div>
+    </t>
+</templates>

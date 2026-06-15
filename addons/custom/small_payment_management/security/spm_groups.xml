@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="module_category_spm" model="ir.module.category">
+        <field name="name">Small Payments Management</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="group_spm_employee" model="res.groups">
+        <field name="name">SPM / Employee</field>
+        <field name="category_id" ref="module_category_spm"/>
+    </record>
+
+    <record id="group_spm_custodian" model="res.groups">
+        <field name="name">SPM / Custodian</field>
+        <field name="category_id" ref="module_category_spm"/>
+        <field name="implied_ids" eval="[(4, ref('group_spm_employee'))]"/>
+    </record>
+
+    <record id="group_spm_approver" model="res.groups">
+        <field name="name">SPM / Approver</field>
+        <field name="category_id" ref="module_category_spm"/>
+        <field name="implied_ids" eval="[(4, ref('group_spm_employee'))]"/>
+    </record>
+
+    <record id="group_spm_branch_finance" model="res.groups">
+        <field name="name">SPM / Branch Finance</field>
+        <field name="category_id" ref="module_category_spm"/>
+        <field name="implied_ids" eval="[(4, ref('group_spm_approver'))]"/>
+    </record>
+
+    <record id="group_spm_finance_manager" model="res.groups">
+        <field name="name">SPM / Finance Manager</field>
+        <field name="category_id" ref="module_category_spm"/>
+        <field name="implied_ids" eval="[(4, ref('group_spm_branch_finance'))]"/>
+    </record>
+
+    <record id="group_spm_admin" model="res.groups">
+        <field name="name">SPM / Administrator</field>
+        <field name="category_id" ref="module_category_spm"/>
+        <field name="implied_ids" eval="[(4, ref('group_spm_employee'))]"/>
+    </record>
+
+    <record id="group_spm_auditor" model="res.groups">
+        <field name="name">SPM / Auditor</field>
+        <field name="category_id" ref="module_category_spm"/>
+    </record>
+
+</odoo>

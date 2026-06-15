@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Auto-replenishment suggestion cron (report §6.3) -->
+    <record id="cron_petty_cash_replenishment" model="ir.cron">
+        <field name="name">Petty Cash: replenishment check</field>
+        <field name="model_id" ref="model_spm_petty_cash_float"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_replenishment()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active" eval="False"/>
+    </record>
+
+</odoo>

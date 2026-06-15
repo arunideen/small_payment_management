@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <record id="seq_spm_petty_cash_voucher" model="ir.sequence">
+        <field name="name">Petty Cash Voucher</field>
+        <field name="code">spm.petty.cash.voucher</field>
+        <field name="prefix">PCV/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+
+    <record id="seq_spm_petty_cash_topup" model="ir.sequence">
+        <field name="name">Petty Cash Top-up</field>
+        <field name="code">spm.petty.cash.topup</field>
+        <field name="prefix">PCT/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+
+    <record id="seq_spm_petty_cash_recon" model="ir.sequence">
+        <field name="name">Petty Cash Reconciliation</field>
+        <field name="code">spm.petty.cash.recon</field>
+        <field name="prefix">PCR/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+
+    <record id="seq_spm_advance" model="ir.sequence">
+        <field name="name">Cash Advance</field>
+        <field name="code">spm.advance</field>
+        <field name="prefix">ADV/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+
+    <record id="seq_spm_reimbursement_batch" model="ir.sequence">
+        <field name="name">Reimbursement Batch</field>
+        <field name="code">spm.reimbursement.batch</field>
+        <field name="prefix">RMB/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+
+</odoo>

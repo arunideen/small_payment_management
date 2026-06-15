@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+
+    <!-- Approvers see the request lines assigned to them; admins see all -->
+    <record id="rule_approval_request_line_own" model="ir.rule">
+        <field name="name">Approval Request Line: own</field>
+        <field name="model_id" ref="model_approval_request_line"/>
+        <field name="groups" eval="[(4, ref('group_approval_user'))]"/>
+        <field name="domain_force">
+            ['|', ('approver_id', '=', user.id),
+             ('delegated_to_id', '=', user.id)]
+        </field>
+    </record>
+
+    <record id="rule_approval_request_line_admin" model="ir.rule">
+        <field name="name">Approval Request Line: admin</field>
+        <field name="model_id" ref="model_approval_request_line"/>
+        <field name="groups" eval="[(4, ref('group_approval_admin'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+</odoo>

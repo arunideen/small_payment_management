@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_spm_petty_cash_float" model="ir.actions.act_window">
+        <field name="name">Petty Cash Floats</field>
+        <field name="res_model">spm.petty.cash.float</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_spm_petty_cash_topup" model="ir.actions.act_window">
+        <field name="name">Top-ups</field>
+        <field name="res_model">spm.petty.cash.topup</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_spm_petty_cash_voucher" model="ir.actions.act_window">
+        <field name="name">Disbursement Vouchers</field>
+        <field name="res_model">spm.petty.cash.voucher</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_spm_petty_cash_recon" model="ir.actions.act_window">
+        <field name="name">Reconciliations</field>
+        <field name="res_model">spm.petty.cash.recon</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

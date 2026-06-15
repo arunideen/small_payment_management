@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Demo masters (report §15). Add demo branches / types / categories here. -->
+    <record id="demo_branch_hq" model="spm.branch">
+        <field name="name">Head Office</field>
+        <field name="code">HQ</field>
+    </record>
+</odoo>

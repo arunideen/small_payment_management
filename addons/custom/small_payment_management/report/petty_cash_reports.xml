@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Disbursement voucher print (report §11.2 #2). Skeleton template. -->
+    <record id="action_report_petty_cash_voucher" model="ir.actions.report">
+        <field name="name">Disbursement Voucher</field>
+        <field name="model">spm.petty.cash.voucher</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">small_payment_management.report_petty_cash_voucher</field>
+        <field name="report_file">small_payment_management.report_petty_cash_voucher</field>
+        <field name="binding_model_id" ref="model_spm_petty_cash_voucher"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_petty_cash_voucher">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Disbursement Voucher</h2>
+                        <p>Voucher: <span t-field="doc.name"/></p>
+                        <p>Date: <span t-field="doc.date"/></p>
+                        <p>Total: <span t-field="doc.amount_total"/></p>
+                        <!-- TODO: lines table + approval chain & signatures block -->
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

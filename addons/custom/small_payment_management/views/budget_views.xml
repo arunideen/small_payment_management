@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_spm_budget" model="ir.actions.act_window">
+        <field name="name">Budgets</field>
+        <field name="res_model">spm.budget</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_spm_budget_reservation" model="ir.actions.act_window">
+        <field name="name">Budget Reservations</field>
+        <field name="res_model">spm.budget.reservation</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>

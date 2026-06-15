@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="spm.MyWallet">
+        <div class="o_spm_my_wallet p-4">
+            <h2>My Wallet</h2>
+            <p class="text-muted">
+                My requests, awaiting my action, reimbursements, advances,
+                my float, quick actions, my monthly spend (report §9.2).
+            </p>
+        </div>
+    </t>
+</templates>
