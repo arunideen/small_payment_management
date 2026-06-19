@@ -22,9 +22,8 @@ selected free third-party/OCA modules, and adds a **model-agnostic dynamic
 approval engine**, operational budget control, OWL dashboards and a reporting
 pack.
 
-This SOW defines the scope, deliverables, timeline, commercials and acceptance
-criteria for the engagement. The full technical design is in the referenced
-Solution Report.
+This SOW defines the scope, deliverables, timeline and acceptance criteria for
+the engagement. The full technical design is in the referenced Solution Report.
 
 ---
 
@@ -110,7 +109,7 @@ flowchart TD
 
 ### 4.2 Out of scope (unless agreed via Change Request)
 
-- Data migration from legacy systems (can be quoted separately).
+- Data migration from legacy systems (handled via a separate Change Request).
 - Payroll, full accounting implementation beyond the modules listed, or
   non-listed integrations (direct bank host-to-host / corporate-banking file
   exchange, e-invoicing, etc.). *Note:* outbound vendor payouts via an external
@@ -138,7 +137,7 @@ technical design: `docs/vendor-payout-integration-research.md`.
 | Excluded | Card-as-funding-source products (EnKash/Karbon/Volopay), payout-to-card and non-INR rails are deferred to a later phase / Change Request unless agreed at kickoff |
 
 > The payout provider account, KYC and current-account funding are arranged and
-> owned by the Client (see §9). The Provider integrates against the Client's
+> owned by the Client (see §8). The Provider integrates against the Client's
 > provider account in test mode, then live.
 
 ---
@@ -165,41 +164,24 @@ Phased delivery per the Solution Report §13. **Estimated effort: 10–14 weeks*
 with a 2–3 person team (1 senior Odoo developer, 1 developer, 1 functional
 consultant/QA).
 
-| Phase | Duration | Key outcome | Milestone payment* |
-|---|---|---|---|
-| 0 — Foundation | 1 wk | Docker stack + 3rd-party modules on staging | 10% |
-| 1 — Masters & security | 2 wks | Branches, types, categories, policies, security | 15% |
-| 2 — Approval engine | 2–3 wks | Matrices + runtime engine + tests | 20% |
-| 3 — Petty cash | 2 wks | Floats, top-ups, vouchers, reconciliation | 15% |
-| 4 — Expenses & reimbursement | 2 wks | hr_expense extensions, advances, batches | 15% |
-| 5 — Budgets | 1–2 wks | Operational budgets + utilization | 10% |
-| 6 — Dashboards & reports | 2 wks | OWL dashboards + report pack | 10% |
-| 7 — UAT & hardening | 1–2 wks | UAT, performance, backup drill, go-live | 5% |
-| 8 — Vendor payout integration (optional, S12) | 2–3 wks | `spm.payout` + provider service, idempotency, signed webhooks, reconciliation; live in provider test then production | Quoted separately |
-
-\* Milestone payment percentages are indicative and subject to the commercial
-terms agreed in §7. Phase 8 is an optional add-on; if commissioned it extends the
-overall estimate by ~2–3 weeks and is priced under its own line in §7.
-
----
-
-## 7. Commercials
-
-| Item | Basis | Amount |
+| Phase | Duration | Key outcome |
 |---|---|---|
-| Implementation (Phases 0–7) | Fixed price / T&M _(to be agreed)_ | _USD «amount»_ |
-| Software license — `small_payment_management` | **OPL-1** (Odoo Proprietary License v1.0) | _USD «amount» / per the agreed terms_ |
-| Optional: annual support & maintenance | % of license or fixed | _USD «amount» / yr_ |
-| Optional: vendor electronic payout integration (S12, Phase 8) | Fixed price / T&M _(to be agreed)_ | _USD «amount»_ |
-| Optional: data migration, extra integrations | Change Request | _Quoted separately_ |
+| 0 — Foundation | 1 wk | Docker stack + 3rd-party modules on staging |
+| 1 — Masters & security | 2 wks | Branches, types, categories, policies, security |
+| 2 — Approval engine | 2–3 wks | Matrices + runtime engine + tests |
+| 3 — Petty cash | 2 wks | Floats, top-ups, vouchers, reconciliation |
+| 4 — Expenses & reimbursement | 2 wks | hr_expense extensions, advances, batches |
+| 5 — Budgets | 1–2 wks | Operational budgets + utilization |
+| 6 — Dashboards & reports | 2 wks | OWL dashboards + report pack |
+| 7 — UAT & hardening | 1–2 wks | UAT, performance, backup drill, go-live |
+| 8 — Vendor payout integration (optional, S12) | 2–3 wks | `spm.payout` + provider service, idempotency, signed webhooks, reconciliation; live in provider test then production |
 
-- Currency, taxes, expenses and payment terms (e.g., net 15/30) to be confirmed
-  in the order/contract.
-- Payments invoiced per the milestone schedule in §6.
+Phase 8 is an optional add-on; if commissioned it extends the overall estimate
+by ~2–3 weeks.
 
 ---
 
-## 8. Roles & Responsibilities
+## 7. Roles & Responsibilities
 
 | Party | Responsibilities |
 |---|---|
@@ -209,7 +191,7 @@ overall estimate by ~2–3 weeks and is priced under its own line in §7.
 
 ---
 
-## 9. Assumptions & Dependencies
+## 8. Assumptions & Dependencies
 
 1. Odoo 19 CE source and the listed 3rd-party/OCA modules are available and
    license-compatible at build time (custom module covers gaps where an OCA
@@ -228,7 +210,7 @@ overall estimate by ~2–3 weeks and is priced under its own line in §7.
 
 ---
 
-## 10. Acceptance Criteria
+## 9. Acceptance Criteria
 
 - Module installs and upgrades cleanly on staging and production.
 - Automated tests pass; UAT scenarios (per role) executed and signed off.
@@ -241,7 +223,7 @@ overall estimate by ~2–3 weeks and is priced under its own line in §7.
 
 ---
 
-## 11. Change Control
+## 10. Change Control
 
 Any change to scope, deliverables, timeline or cost is handled via a written
 **Change Request** (impact assessment + revised estimate), approved by both
@@ -249,7 +231,7 @@ parties before work proceeds.
 
 ---
 
-## 12. Warranty & Support
+## 11. Warranty & Support
 
 - **Warranty:** 30 days from go-live covering defects against agreed specs at
   no additional charge.
@@ -258,7 +240,7 @@ parties before work proceeds.
 
 ---
 
-## 13. Sign-off
+## 12. Sign-off
 
 | | Provider — Ideenkreise Tech | Client — _«Client Name»_ |
 |---|---|---|

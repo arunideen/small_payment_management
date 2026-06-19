@@ -16,7 +16,7 @@ The solution combines three layers:
 
 1. **Odoo 19 CE core** — `account`, `hr_expense`, `analytic`, `hr`, multi-company framework.
 2. **Free third-party / community modules** — Cybrosys **`base_accounting_kit`** (full accounting kit, v19-compatible), Cybrosys **`dynamic_accounts_report`** (dynamic financial reports, v19-compatible), Odoo Mates **`om_account_accountant` / `om_account_budget`** (accounting menu + budget management for CE), and OCA repositories (**`base_tier_validation`**, **`hr-expense`**, **`mis-builder`**, **`operating-unit`**, **`account-financial-reporting`**, **`web`**).
-3. **A single custom module (`small_payment_management` — Small Payments Management)** that delivers, as one coherent installable, everything no off-the-shelf product covers: branch master, expense type/category masters with budget-check flags, petty cash float (imprest) management, budget reservation/utilization, the model-agnostic **dynamic approval engine** (auto-populated chains by company + dimensions + amount, **Request for Information**, **delegation by both admin and the active approver**, **live add/remove of approvers by admin**, SLA escalation, immutable audit), OWL dashboards for management and end users, and a consolidated reporting pack. **Per the consolidation requirement, all custom-developed code ships in this one module `small_payment_management`** — there is no separate add-on suite and no separately-packaged workflow engine. (Trade-off: this forgoes listing the approval engine as an independent paid App Store product; see §7.0.)
+3. **A single custom module (`small_payment_management` — Small Payments Management)** that delivers, as one coherent installable, everything no off-the-shelf product covers: branch master, expense type/category masters with budget-check flags, petty cash float (imprest) management, budget reservation/utilization, the model-agnostic **dynamic approval engine** (auto-populated chains by company + dimensions + amount, **Request for Information**, **delegation by both admin and the active approver**, **live add/remove of approvers by admin**, SLA escalation, immutable audit), OWL dashboards for management and end users, and a consolidated reporting pack. **Per the consolidation requirement, all custom-developed code ships in this one module `small_payment_management`** — there is no separate add-on suite and no separately-packaged workflow engine.
 
 Key design decisions (justified in the body):
 
@@ -27,6 +27,7 @@ Key design decisions (justified in the body):
 | Workflow engine | Custom approval-matrix engine, design aligned with OCA `base_tier_validation` concepts | Tier validation alone cannot auto-populate ordered, role-resolved approver chains from company/branch/type/category/amount; a matrix engine can, while remaining auditable |
 | Budgets | `om_account_budget` (or OCA `mis_builder_budget`) for accounting-level budgets + custom `spm.budget` for operational, line-level pre-commitment control | Accounting budgets measure actuals after posting; petty-cash control needs *pre-approval* budget reservation, which only a custom layer provides |
 | Reporting | Dynamic Accounts Report + custom QWeb/XLSX reports + MIS Builder for management packs | Covers statutory, operational and management reporting |
+| Vendor payouts (optional) | External payouts API (RazorpayX / Cashfree) behind a provider-agnostic layer; drives a reconciled `account.payment` | Odoo's `payment.provider` is inbound-only; outbound vendor disbursement (UPI/cards/bank) needs a dedicated layer (§6.5) |
 
 Estimated delivery effort: **10–14 weeks** with a 2–3 person team (1 senior Odoo dev, 1 dev, 1 functional consultant/QA). Roadmap in §13.
 
@@ -49,6 +50,7 @@ Estimated delivery effort: **10–14 weeks** with a 2–3 person team (1 senior 
 | R9 | Individual user dashboard (my requests, my actions) | OWL "My Wallet" dashboard: my requests by state, pending my approval, my floats, my reimbursements | §9.2 |
 | R10 | Enterprise standards | Multi-company record rules, branch-level security, full audit trail (chatter + mail.activity), SoD, test coverage, CI-ready repo layout, backup/DR | §12 |
 | R11 | Multi-company & multi-branch | Native Odoo multi-company + branch dimension on every transactional model, record rules on both | §4, §12.2 |
+| R12 | Electronic vendor payments (UPI / cards / bank) via external service | Optional outbound payout integration: `spm.payout` + provider service (RazorpayX / Cashfree), idempotent create, signed webhooks, reconciled `account.payment` | §6.5 |
 
 ### 2.2 Functional scope (detailed)
 
@@ -155,8 +157,10 @@ flowchart TD
     J --> K{"Payment mode"}
     K -- "petty cash" --> K1["Cr Petty Cash / Dr Expense"]
     K -- "reimburse" --> K2["Pay employee / batch"]
+    K -- "electronic payout<br/>(UPI / card / bank)" --> K3[["Vendor payout integration<br/>(see §6.5)"]]
     K1 --> L["Consume reservation<br/>update utilization"]
     K2 --> L
+    K3 --> L
     H -- rejected --> X2["Rejected:<br/>reason + notify"]
     L --> M[("Dashboards & Reports")]
 ```
@@ -258,7 +262,7 @@ This tuple is the key for workflow resolution (§7), budget control (§8), and a
 | Dashboards (`static/src/`, OWL) | Management Dashboard + My Wallet user dashboard |
 | Reports (`report/`) | QWeb PDF + XLSX report pack (§11) |
 
-> **Licensing note (consequence of consolidation).** Because the approval engine is now compiled into `small_payment_management` rather than shipped as a standalone `base`+`mail`-only module, it can no longer be listed and sold on the Odoo Apps Store as an independent product. The whole `small_payment_management` module is governed by **one** license: **OPL-1** (Odoo Proprietary License v1.0 — the App Store paid-app license), so the consolidated solution can be distributed as a single paid app. (If independent sale of the approval engine ever becomes a priority again, the approval-engine files — kept dependency-clean at `base`+`mail` only — can be split back out into their own module; that is the only thing the single-module design gives up.)
+> **Licensing note.** The whole `small_payment_management` module is governed by **one** license: **OPL-1** (Odoo Proprietary License v1.0). The approval-engine files are kept dependency-clean (`base`+`mail` only), so they remain a self-contained, liftable layer that could be split back into their own module if ever needed.
 
 ---
 
@@ -327,7 +331,7 @@ stateDiagram-v2
 
 **Top-up / Replenishment (`spm.petty.cash.topup`)** — requested by custodian or auto-suggested by cron when `available < replenish_threshold`. On final approval, posts `Dr Petty Cash – Branch / Cr Bank` and (imprest mode) replenishes exactly the sum of approved vouchers since last top-up.
 
-**Disbursement Voucher (`spm.petty.cash.voucher`)** — header (float, date, payee type employee/vendor/other, branch auto = float branch) + lines (category, description, amount, tax, analytic auto-filled = branch ∥ category). Submission runs policy checks, duplicate detection, **budget check (§8)**, then resolves the **approval matrix (§7)**. On approval+posting: `Dr Expense accounts (lines) / Cr Petty Cash – Branch`.
+**Disbursement Voucher (`spm.petty.cash.voucher`)** — header (float, date, payee type employee/vendor/other, branch auto = float branch) + lines (category, description, amount, tax, analytic auto-filled = branch ∥ category). Submission runs policy checks, duplicate detection, **budget check (§8)**, then resolves the **approval matrix (§7)**. On approval+posting: `Dr Expense accounts (lines) / Cr Petty Cash – Branch`. Vendor-payee vouchers may additionally be settled electronically through the optional payout integration (§6.5).
 
 **Reconciliation (`spm.petty.cash.recon`)** — periodic cash count: denominations grid, system vs counted, variance line posts to a Cash Over/Short account through its own (typically stricter) approval matrix.
 
@@ -355,7 +359,43 @@ Extends core `hr.expense` / `hr.expense.sheet`:
 - Adds `branch_id` (default from employee), `expense_type_id`, `expense_category_id` (domain-linked; category fills product/account/analytic), duplicate-claim warning.
 - Replaces the single "manager approval" with the **matrix workflow**: `sheet.action_submit_sheet()` is overridden to generate approval lines; core `action_approve` is reachable only by the engine when the last tier approves (keeps core accounting posting intact = upgrade-safe).
 - **Advances:** via OCA `hr_expense_advance_clearing` when available for 19.0 (advance request → approval → payment → clearing against claims), else the module's fallback `spm.advance` model implementing the same ledger.
-- **Reimbursement batches (`spm.reimbursement.batch`)**: accountant selects approved & posted sheets per company/branch, generates payments (bank file export optional), marks sheets paid, notifies employees.
+- **Reimbursement batches (`spm.reimbursement.batch`)**: accountant selects approved & posted sheets per company/branch, generates payments (bank file export optional), marks sheets paid, notifies employees — or disburses them through the electronic payout integration (§6.5).
+
+### 6.5 Vendor electronic payout integration — UPI / cards / bank (optional, `models/payout.py`)
+
+Pays vendors directly from approved documents — petty-cash vouchers with `payee_type = vendor` (§6.3), reimbursement batches (§6.4), and optionally standard vendor bills (`account.move`) — by calling an external **payouts API**. This is an **outbound disbursement** path and is deliberately **not** built on Odoo's `payment.provider` framework, which is inbound-only (customers paying the company). Full design, provider comparison and compliance analysis: [`docs/vendor-payout-integration-research.md`](docs/vendor-payout-integration-research.md).
+
+**Provider abstraction.** RazorpayX Payouts is the first implementation, behind a provider-agnostic interface (`spm.payout.provider`) so Cashfree — or a card-funded provider — can be added without touching the document models. Supported rails: UPI (VPA), IMPS, NEFT, RTGS and payout-to-card.
+
+**Data model**
+
+| Model | Purpose |
+|---|---|
+| `spm.payout.provider` | Provider config: type, key id, credential (restricted system parameter), source `account_number`, test/live environment |
+| `spm.payout` | One disbursement: source document (Reference), partner, amount, rail, `idempotency_key` (unique), provider contact/fund-account/payout ids, state, UTR, fees, linked `account.payment` |
+| `spm.payout.webhook.event` | Raw inbound webhook log (event id, signature-verified flag, payload, processed flag) for idempotent replay |
+| `res.partner` / `res.partner.bank` (extended) | Beneficiary VPA, cached provider contact/fund-account ids, KYC/verification status |
+
+**Lifecycle (provider-driven, asynchronous):** `draft → queued → processing → processed / reversed / failed`. The host document reaches `paid` only once a **signed** `payout.processed` webhook is received and the `account.payment` is created, posted and reconciled; a status-poll fallback covers missed webhooks.
+
+**Controls** (research doc §7–§8): payout only after `approval_state = approved`; **maker–checker / SoD** — the releaser must differ from the approver (§12.1); **idempotency key mandatory** on every create and on webhook handling (at-least-once delivery); **HMAC signature verification** on every webhook; credentials stored as restricted system parameters, never in source; beneficiary KYC / penny-drop before first payout; optional **TDS** deduction (pay net); INR-only guard; immutable audit of every state change (releaser, idempotency key, provider ids, UTR).
+
+```mermaid
+flowchart TD
+    A["Approved & posted document"] --> REL{"Release payout<br/>(SoD: releaser &ne; approver)"}
+    REL -- "release" --> KYC{"Beneficiary verified?<br/>(PAN / penny-drop / VPA)"}
+    KYC -- "no" --> BLK["Blocked: verify first"]
+    KYC -- "yes" --> FA["Ensure Contact + Fund Account<br/>(cached on partner)"]
+    FA --> PO["Create payout (spm.payout)<br/>idempotency key, queue_if_low_balance"]
+    PO --> PROC["queued / processing"]
+    PROC --> WH[["Webhook (async): verify signature,<br/>dedupe on event id"]]
+    WH -- "payout.processed" --> OK["Store UTR + fees<br/>create &amp; reconcile account.payment<br/>&rarr; document = paid"]
+    WH -- "reversed / failed" --> FAIL["Reverse entry<br/>notify + reopen for retry"]
+    PROC -. "no webhook in SLA" .-> POLL["Status poll fallback"]
+    POLL --> WH
+    FAIL --> REL
+    OK --> DONE[("Payout register & dashboards")]
+```
 
 ---
 
@@ -372,11 +412,11 @@ The workflow engine is implemented as a **self-contained, model-agnostic approva
 | Edition target | Odoo 19.0 **Community** (also runs on Enterprise) |
 | Internal dependencies | Only `base` + `mail` semantics — the engine code references no SPM model, keeping it a clean, reusable layer |
 | Genericity | Works on **any** Odoo model by inheriting one mixin (`approval.workflow.mixin`); the SPM documents, sale orders, purchase orders, vendor bills, expense sheets, stock pickings, or any custom model can all be governed by the same engine |
-| License | Inherits the **single OPL-1 license of the `small_payment_management` module** (§5.4) — it is no longer separately licensed/priced |
+| License | Inherits the **single OPL-1 license of the `small_payment_management` module** (§5.4) |
 
 Inside this solution there is **no separate bridge module**: the SPM documents inherit `approval.workflow.mixin` directly and map their dimensions (branch/type/category) onto the engine's generic matching dimensions within the same module. Everything below is the engine's design; the four key capabilities — **Request for Information**, **delegation (admin + active-approver)**, and **live add / remove of approvers by admin** — are first-class features of this engine.
 
-> **Consequence of consolidation (was §1, repeated here for the engine):** folding the engine into `small_payment_management` means it can no longer be listed and sold on the Odoo Apps Store as an independent paid app (the previous design priced it at USD 5,000 under OPL-1). The code is deliberately kept dependency-clean (`base`+`mail` only) so that, *if* independent sale is ever wanted again, the approval-engine files can be lifted back out into their own module with minimal effort — but as delivered, it is part of the one `small_payment_management` module.
+> **Consequence of consolidation:** the engine ships as part of `small_payment_management` rather than as a standalone module. The code is deliberately kept dependency-clean (`base`+`mail` only) so that the approval-engine files can be lifted back out into their own module with minimal effort if ever needed — but as delivered, it is part of the one `small_payment_management` module.
 
 ### 7.1 Concept
 
@@ -526,7 +566,7 @@ The engine has no manifest of its own — its files live in the one flat `small_
 ```
 Engine code: `models/approval.py` (matrix, request line, delegation, RFI, amendment log, `approval.workflow.mixin`) and `wizard/approval_wizards.py`.
 
-> Licensing: the engine inherits the **single license of `small_payment_management`** (§5.4). Its code still references only `base`+`mail` semantics, so the engine files stay a clean, liftable layer — but as delivered it is not a separately installable or separately sold product.
+> Licensing: the engine inherits the **single OPL-1 license of `small_payment_management`** (§5.4). Its code still references only `base`+`mail` semantics, so the engine files stay a clean, liftable layer — but as delivered it is not a separately installable module.
 
 ---
 
@@ -874,6 +914,7 @@ Dynamic GL, Trial Balance, P&L, Balance Sheet, Cash Flow, Partner Ledger & Agein
 | 10 | Spend Analytics extract | BI | Flat cube (the §4.3 tuple) as XLSX/CSV for external BI |
 | 11 | Advance Outstanding & Ageing | Finance | Per employee, settlement status |
 | 12 | Custodian Activity & Variance history | Internal control | Per custodian risk view |
+| 13 | Vendor Payout Register (optional) | Finance, audit | Per payout: document, partner, rail (UPI/IMPS/NEFT/RTGS/card), amount, fees, UTR, state, idempotency key; reconciles to `account.payment` (§6.5) |
 
 All custom reports respect company/branch record rules and carry the printing user, timestamp and filter header (audit standard).
 
@@ -890,10 +931,11 @@ All custom reports respect company/branch record rules and carry the printing us
 | SPM / Approver | + approve queue (resolved by matrix, not by group alone) |
 | SPM / Branch Finance | + branch-wide read, reimbursement prep, registers |
 | SPM / Finance Manager | + post/pay, budget edit (own companies), matrices read |
-| SPM / Administrator | Masters, matrices, budgets, policies (no transaction posting — SoD) |
+| SPM / Payout Releaser | + release approved electronic payouts (UPI/cards/bank, §6.5); must differ from the document's approver (SoD) |
+| SPM / Administrator | Masters, matrices, budgets, policies, payout-provider credentials (no transaction posting — SoD) |
 | SPM / Auditor | Read-everything, post-nothing |
 
-**Segregation of duties enforced in code:** requester ≠ approver (§7.4); approver ≠ poster for the same document; matrix/budget editors cannot approve transactions they configured (constraint check).
+**Segregation of duties enforced in code:** requester ≠ approver (§7.4); approver ≠ poster for the same document; the payout releaser must differ from the document's approver (§6.5); matrix/budget editors cannot approve transactions they configured (constraint check).
 
 ### 12.2 Record rules
 
@@ -932,6 +974,7 @@ All custom reports respect company/branch record rules and carry the printing us
 | 5 — Budgets | 1–2 | Budget (`models/budget.py`) + `om_account_budget`/MIS budget wiring, transfers |
 | 6 — Dashboards & reports | 2 | OWL dashboards, report pack, MIS board pack |
 | 7 — UAT & hardening | 1–2 | UAT scripts per role, performance pass, backup/restore drill, training, go-live |
+| 8 — Vendor payout integration (optional) | 2–3 | Payout (`models/payout.py`) + provider service (RazorpayX/Cashfree), idempotent create, signed webhooks, reconciliation, beneficiary verification; live in provider test then production (§6.5) |
 
 **Go-live checklist:** chart-of-accounts & petty cash GL per company ✓ · branches + analytic plan ✓ · types/categories with budget ticks ✓ · approval matrices signed off by finance ✓ · budgets loaded ✓ · opening float balances posted ✓ · user-role assignment ✓ · backup job verified ✓.
 
@@ -947,6 +990,8 @@ All custom reports respect company/branch record rules and carry the printing us
 | Budget race on concurrent approvals | Over-commitment | Row-level lock + re-check at final approval (§8.3) |
 | Odoo 19 dot-release changes (19.x source moves) | Regression | Source pinned to commit, not branch tip, in production builds; upgrades via staging |
 | Single-container mandate | Ops fragility | Documented trade-offs + supervisord variant (§10.6) |
+| Double payment on payout retry / duplicate webhook | Vendor paid twice | Mandatory idempotency key on create + webhook dedupe by event id; never blind-retry — re-query status first (§6.5) |
+| Payout provider KYC / current-account funding not ready | Phase 8 blocked or payouts queued | Client owns provider onboarding & funding; `queue_if_low_balance`; beneficiary penny-drop before first payout (§6.5) |
 
 ---
 
@@ -963,7 +1008,8 @@ small_payment_management/
 │   ├── approval.py        # approval engine models + approval.workflow.mixin (§7)
 │   ├── budget.py          # operational budget + reservation ledger (§8)
 │   ├── petty_cash.py      # floats, top-ups, vouchers, reconciliation (§6.3)
-│   └── expense.py         # hr_expense extensions, advances, reimbursement (§6.4)
+│   ├── expense.py         # hr_expense extensions, advances, reimbursement (§6.4)
+│   └── payout.py          # vendor electronic payout integration (§6.5, optional)
 ├── wizard/
 │   ├── __init__.py
 │   └── approval_wizards.py   # RFI / delegate / amend wizards
@@ -997,6 +1043,7 @@ small_payment_management/
         # — security: groups first, then rules, then access —
         "security/spm_groups.xml",
         "security/approval_groups.xml",
+        "security/payout_groups.xml",        # optional payout integration (§6.5)
         "security/spm_record_rules.xml",
         "security/approval_record_rules.xml",
         "security/ir.model.access.csv",
@@ -1013,6 +1060,9 @@ small_payment_management/
         "report/petty_cash_reports.xml",
         "views/expense_views.xml",
         "report/spm_reports.xml",
+        # — vendor payout integration (optional, §6.5) —
+        "data/payout_data.xml",              # providers, webhook cron, mail templates
+        "views/payout_views.xml",
         # — menus (reference the actions above) load last —
         "views/spm_menus.xml",
     ],
@@ -1104,6 +1154,7 @@ class ApprovalWorkflowMixin(models.AbstractModel):
 | OCA responsive web | `github.com/OCA/web` → `web_responsive` |
 | wkhtmltopdf 0.12.6 patched | `github.com/wkhtmltopdf/packaging` releases |
 | Odoo 19 source-install requirements (Python ≥3.10, PostgreSQL ≥13) | `odoo.com/documentation/19.0/administration/on_premise/source.html` |
+| Vendor payout provider (optional, §6.5) | RazorpayX Payouts `razorpay.com/docs/api/x/payouts/` / Cashfree Payouts; design in `docs/vendor-payout-integration-research.md` |
 
 ---
 
