@@ -71,6 +71,8 @@
       <li><a href="#d3">Dynamic approval engine</a></li>
       <li><a href="#d4">Budget control &amp; utilization</a></li>
       <li><a href="#d5">Petty cash imprest cycle</a></li>
+      <li><a href="#d6">Vendor electronic payout integration</a></li>
+      <li><a href="#d7">Payout entity state machine</a></li>
     </ol>
   </nav>
 
@@ -101,6 +103,18 @@
   <section class="diagram" id="d5">
     <h2>5. Petty cash imprest cycle <span class="badge">§6.3</span></h2>
     <p class="desc">Float → vouchers → threshold → top-up → replenish, plus reconciliation and variance posting.</p>
+    <pre class="mermaid"></pre>
+  </section>
+
+  <section class="diagram" id="d6">
+    <h2>6. Vendor electronic payout integration <span class="badge">UPI / cards / bank</span></h2>
+    <p class="desc">Outbound disbursement of approved documents via an external payouts API (RazorpayX / Cashfree): release with SoD → beneficiary verification → contact/fund account → create payout (idempotent) → signed webhook → reconciled <code>account.payment</code>, with reversal/retry. See <a href="vendor-payout-integration-research.md">vendor-payout-integration-research.md</a>.</p>
+    <pre class="mermaid"></pre>
+  </section>
+
+  <section class="diagram" id="d7">
+    <h2>7. Payout entity state machine <span class="badge">spm.payout</span></h2>
+    <p class="desc">Provider-driven async lifecycle: queued/processing → processed / reversed / failed, with retry. Document reaches <code>paid</code> only on a signed <code>payout.processed</code> webhook.</p>
     <pre class="mermaid"></pre>
   </section>
 
@@ -148,8 +162,10 @@ const sources = {
     J --> K{"Payment mode"}
     K -- "petty cash" --> K1["Cr Petty Cash / Dr Expense"]
     K -- "reimburse" --> K2["Pay employee / batch"]
+    K -- "electronic payout<br/>(UPI / card / bank)" --> K3[["Vendor payout integration<br/>(see diagram 6)"]]
     K1 --> L["Consume reservation<br/>update utilization"]
     K2 --> L
+    K3 --> L
     H -- rejected --> X2["Rejected:<br/>reason + notify"]
     L --> M[("Dashboards & Reports")]`,
 
@@ -162,7 +178,11 @@ const sources = {
     info_requested --> under_approval: answer received
     under_approval --> approved: last tier approved
     approved --> posted: post journal entry
-    posted --> paid: register payment
+    posted --> paid: register payment (manual / cash)
+    posted --> paying: initiate electronic payout (UPI / card / bank)
+    paying --> paid: payout processed (signed webhook + reconcile)
+    paying --> payout_failed: failed / reversed
+    payout_failed --> paying: retry
     paid --> [*]
 
     submitted --> rejected: reject
@@ -219,6 +239,43 @@ const sources = {
     REC["Periodic reconciliation<br/>(cash count vs book)"] --> VAR{"Variance?"}
     VAR -- "yes" --> VP["Post over/short<br/>(stricter approval)"]
     VAR -- "no" --> OKR["Confirmed"]`,
+
+  d6: `flowchart TD
+    A["Approved & posted document"] --> REL{"Release payout<br/>(SoD: releaser &ne; approver)"}
+    REL -- "hold" --> HLD["Stays posted<br/>(awaiting release)"]
+    REL -- "release" --> KYC{"Beneficiary verified?<br/>(PAN / penny-drop / VPA check)"}
+    KYC -- "no" --> BLK["Blocked:<br/>verify beneficiary first"]
+    KYC -- "yes" --> FA["Ensure Contact + Fund Account<br/>(cached on partner; bank acct or UPI VPA)"]
+    FA --> RAIL["Select rail<br/>UPI / IMPS / NEFT / RTGS / to-card"]
+    RAIL --> PO["Create payout (spm.payout)<br/>stored idempotency key,<br/>queue_if_low_balance = true"]
+    PO --> ST{"Provider response"}
+    ST -- "low balance" --> Q["queued<br/>(alert finance to fund account)"]
+    Q --> PROC
+    ST -- "accepted" --> PROC["processing"]
+
+    PROC --> WH[["Webhook (async)<br/>verify X-Razorpay-Signature,<br/>dedupe on event id"]]
+    WH -- "payout.processed" --> OK["Store UTR + fees<br/>create & reconcile account.payment<br/>&rarr; document = paid"]
+    WH -- "payout.reversed / failed" --> FAIL["Reverse provisional entry<br/>notify + reopen for retry"]
+    PROC -. "no webhook in SLA" .-> POLL["Status poll fallback<br/>(re-query by payout id)"]
+    POLL --> WH
+    FAIL --> REL
+    OK --> DONE[("Dashboards & payout register")]`,
+
+  d7: `stateDiagram-v2
+    [*] --> draft
+    draft --> queued: low balance (queue_if_low_balance)
+    draft --> processing: submitted to provider
+    queued --> processing: account funded
+    processing --> processed: payout.processed (signed webhook)
+    processing --> reversed: payout.reversed
+    processing --> failed: payout.failed
+    processed --> [*]
+    reversed --> draft: retry
+    failed --> draft: retry
+    draft --> cancelled: cancel before submit
+    cancelled --> [*]
+    reversed --> [*]
+    failed --> [*]`,
 };
 
 for (const [id, src] of Object.entries(sources)) {

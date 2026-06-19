@@ -8,7 +8,7 @@
 | **Project** | Small Payment Management (`small_payment_management`) on Odoo 19 Community Edition |
 | **Document version** | 1.0 (Draft) |
 | **Date** | June 2026 |
-| **Reference** | `odoo19-petty-cash-expense-solution-report.md` (Solution Architecture & Implementation Report) |
+| **Reference** | `odoo19-petty-cash-expense-solution-report.md` (Solution Architecture & Implementation Report); `docs/vendor-payout-integration-research.md` (Vendor Electronic Payout Integration) |
 
 ---
 
@@ -79,8 +79,10 @@ flowchart TD
     J --> K{"Payment mode"}
     K -- "petty cash" --> K1["Cr Petty Cash / Dr Expense"]
     K -- "reimburse" --> K2["Pay employee / batch"]
+    K -- "electronic payout<br/>(UPI / card / bank)" --> K3[["Vendor payout integration<br/>(external payouts API)"]]
     K1 --> L["Consume reservation<br/>update utilization"]
     K2 --> L
+    K3 --> L
     H -- rejected --> X2["Rejected:<br/>reason + notify"]
     L --> M[("Dashboards & Reports")]
 ```
@@ -104,16 +106,40 @@ flowchart TD
 | S9 | Reporting pack | Statutory (via 3rd-party) + custom operational QWeb/XLSX reports |
 | S10 | Security & compliance | Multi-company + branch record rules, SoD, audit trail |
 | S11 | Deployment, backups/DR, documentation, training, UAT support | Per roadmap Phase 7 |
+| S12 | Vendor electronic payout integration (UPI / cards / bank) | Outbound payouts via an external aggregator API (RazorpayX / Cashfree); see §4.3 and `docs/vendor-payout-integration-research.md`. Optional add-on — Phase 8 |
 
 ### 4.2 Out of scope (unless agreed via Change Request)
 
 - Data migration from legacy systems (can be quoted separately).
 - Payroll, full accounting implementation beyond the modules listed, or
-  non-listed integrations (bank host-to-host, e-invoicing, etc.).
+  non-listed integrations (direct bank host-to-host / corporate-banking file
+  exchange, e-invoicing, etc.). *Note:* outbound vendor payouts via an external
+  aggregator **API** are covered by S12/§4.3; direct bank host-to-host is not.
 - Odoo Enterprise licensing or Enterprise-only features.
 - Custom mobile apps (the solution is mobile-friendly via responsive web).
 - Ongoing hosting/managed services and post-warranty support (separate SLA).
 - Translations beyond the languages agreed at kickoff.
+
+### 4.3 Vendor electronic payout integration (UPI / cards / bank) — S12
+
+Enables paying vendors directly from approved documents (petty-cash vouchers with
+`payee_type = vendor`, reimbursement batches, and optionally standard vendor bills)
+through an external **payouts API**. This is an **outbound disbursement** capability
+and is deliberately *not* built on Odoo's inbound `payment.provider` framework. Full
+technical design: `docs/vendor-payout-integration-research.md`.
+
+| Item | Detail |
+|---|---|
+| Provider | RazorpayX Payouts first, behind a **provider-agnostic** interface so Cashfree (or a card-funded provider) can be added later without touching the document models |
+| Rails | UPI (VPA), IMPS, NEFT, RTGS, and payout-to-card; provider/account-balance funded |
+| Odoo design | New `spm.payout` transaction + `spm.payout.provider` config + beneficiary (bank/VPA) and verification fields on partners; payout drives a posted, reconciled `account.payment` |
+| Lifecycle | Async, provider-driven: `queued → processing → processed / reversed / failed`, with signed webhooks, status-poll fallback and retry |
+| Controls | Payout only after final approval; **maker–checker / SoD** (releaser ≠ approver); mandatory **idempotency keys**; **HMAC webhook verification**; secrets as restricted system parameters; beneficiary KYC/penny-drop before first payout; optional **TDS** deduction; immutable audit |
+| Excluded | Card-as-funding-source products (EnKash/Karbon/Volopay), payout-to-card and non-INR rails are deferred to a later phase / Change Request unless agreed at kickoff |
+
+> The payout provider account, KYC and current-account funding are arranged and
+> owned by the Client (see §9). The Provider integrates against the Client's
+> provider account in test mode, then live.
 
 ---
 
@@ -129,6 +155,7 @@ flowchart TD
 | D6 | Documentation (admin + user guides, this SOW, solution report, workflow) | Delivered in `docs/` |
 | D7 | Training (admin + key users) | Training session(s) completed |
 | D8 | UAT support + go-live + warranty | Go-live checklist completed |
+| D9 | Vendor electronic payout integration (S12, optional) | Payouts demonstrated end-to-end in provider **test** mode (create → webhook → reconciled `account.payment`), then live sign-off |
 
 ---
 
@@ -148,9 +175,11 @@ consultant/QA).
 | 5 — Budgets | 1–2 wks | Operational budgets + utilization | 10% |
 | 6 — Dashboards & reports | 2 wks | OWL dashboards + report pack | 10% |
 | 7 — UAT & hardening | 1–2 wks | UAT, performance, backup drill, go-live | 5% |
+| 8 — Vendor payout integration (optional, S12) | 2–3 wks | `spm.payout` + provider service, idempotency, signed webhooks, reconciliation; live in provider test then production | Quoted separately |
 
 \* Milestone payment percentages are indicative and subject to the commercial
-terms agreed in §7.
+terms agreed in §7. Phase 8 is an optional add-on; if commissioned it extends the
+overall estimate by ~2–3 weeks and is priced under its own line in §7.
 
 ---
 
@@ -161,6 +190,7 @@ terms agreed in §7.
 | Implementation (Phases 0–7) | Fixed price / T&M _(to be agreed)_ | _USD «amount»_ |
 | Software license — `small_payment_management` | **OPL-1** (Odoo Proprietary License v1.0) | _USD «amount» / per the agreed terms_ |
 | Optional: annual support & maintenance | % of license or fixed | _USD «amount» / yr_ |
+| Optional: vendor electronic payout integration (S12, Phase 8) | Fixed price / T&M _(to be agreed)_ | _USD «amount»_ |
 | Optional: data migration, extra integrations | Change Request | _Quoted separately_ |
 
 - Currency, taxes, expenses and payment terms (e.g., net 15/30) to be confirmed
@@ -189,6 +219,12 @@ terms agreed in §7.
    master (or OCA Operating Unit if its 19.0 port is adopted).
 4. Client makes SMEs available for requirements confirmation and UAT.
 5. Approval matrices and budgets are signed off by Client finance before go-live.
+6. *(If S12 / Phase 8 is commissioned)* The Client holds the payout-provider
+   account (RazorpayX / Cashfree), completes provider KYC and legal-entity
+   current-account onboarding, funds the payout balance, and provides test + live
+   API credentials and webhook configuration. Beneficiary KYC/bank verification and
+   any TDS treatment are confirmed with Client finance. Payouts are INR-only unless
+   otherwise agreed.
 
 ---
 

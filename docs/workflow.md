@@ -40,8 +40,10 @@ flowchart TD
     J --> K{"Payment mode"}
     K -- "petty cash" --> K1["Cr Petty Cash / Dr Expense"]
     K -- "reimburse" --> K2["Pay employee / batch"]
+    K -- "electronic payout<br/>(UPI / card / bank)" --> K3[["Vendor payout integration<br/>(see Diagram 6)"]]
     K1 --> L["Consume reservation<br/>update utilization"]
     K2 --> L
+    K3 --> L
     H -- rejected --> X2["Rejected:<br/>reason + notify"]
     L --> M[("Dashboards & Reports")]
 ```
@@ -60,7 +62,11 @@ stateDiagram-v2
     info_requested --> under_approval: answer received
     under_approval --> approved: last tier approved
     approved --> posted: post journal entry
-    posted --> paid: register payment
+    posted --> paid: register payment (manual / cash)
+    posted --> paying: initiate electronic payout (UPI / card / bank)
+    paying --> paid: payout processed (signed webhook + reconcile)
+    paying --> payout_failed: failed / reversed
+    payout_failed --> paying: retry (same idempotency key family)
     paid --> [*]
 
     submitted --> rejected: reject
@@ -74,6 +80,10 @@ stateDiagram-v2
 
 > Users never edit `state` directly — transitions are guarded by the engine.
 > Submitted documents are never deleted: cancel-with-reason instead (§12.3).
+> The `paying`/`payout_failed` sub-states are driven by the external payout
+> provider asynchronously (see Diagram 6); the document only reaches `paid` once
+> a signed `payout.processed` webhook is received and the `account.payment` is
+> reconciled.
 
 ---
 
@@ -150,6 +160,67 @@ flowchart TD
 
 ---
 
+## 6. Vendor electronic payout integration (UPI / cards / bank)
+
+Pays vendors from approved documents (petty-cash vouchers with `payee_type =
+vendor`, reimbursement batches, and optionally `account.move` vendor bills) by
+calling an external **payouts API** (e.g. RazorpayX / Cashfree). This is an
+**outbound disbursement** path — distinct from Odoo's inbound `payment.provider`
+framework. Full design: [`vendor-payout-integration-research.md`](vendor-payout-integration-research.md).
+
+```mermaid
+flowchart TD
+    A["Approved &amp; posted document"] --> REL{"Release payout<br/>(SoD: releaser &ne; approver)"}
+    REL -- "hold" --> HLD["Stays posted<br/>(awaiting release)"]
+    REL -- "release" --> KYC{"Beneficiary verified?<br/>(PAN / penny-drop / VPA check)"}
+    KYC -- "no" --> BLK["Blocked:<br/>verify beneficiary first"]
+    KYC -- "yes" --> FA["Ensure Contact + Fund Account<br/>(cached on partner; bank acct or UPI VPA)"]
+    FA --> RAIL["Select rail<br/>UPI / IMPS / NEFT / RTGS / to-card"]
+    RAIL --> PO["Create payout (spm.payout)<br/>stored idempotency key,<br/>queue_if_low_balance = true"]
+    PO --> ST{"Provider response"}
+    ST -- "low balance" --> Q["queued<br/>(alert finance to fund account)"]
+    Q --> PROC
+    ST -- "accepted" --> PROC["processing"]
+
+    PROC --> WH[["Webhook (async)<br/>verify X-Razorpay-Signature,<br/>dedupe on event id"]]
+    WH -- "payout.processed" --> OK["Store UTR + fees<br/>create &amp; reconcile account.payment<br/>&rarr; document = paid"]
+    WH -- "payout.reversed / failed" --> FAIL["Reverse provisional entry<br/>notify + reopen for retry"]
+    PROC -. "no webhook in SLA" .-> POLL["Status poll fallback<br/>(re-query by payout id)"]
+    POLL --> WH
+    FAIL --> REL
+    OK --> DONE[("Dashboards &amp; payout register")]
+```
+
+**Payout entity (`spm.payout`) state machine:**
+
+```mermaid
+stateDiagram-v2
+    [*] --> draft
+    draft --> queued: low balance (queue_if_low_balance)
+    draft --> processing: submitted to provider
+    queued --> processing: account funded
+    processing --> processed: payout.processed (signed webhook)
+    processing --> reversed: payout.reversed
+    processing --> failed: payout.failed
+    processed --> [*]
+    reversed --> draft: retry
+    failed --> draft: retry
+    draft --> cancelled: cancel before submit
+    cancelled --> [*]
+    reversed --> [*]
+    failed --> [*]
+```
+
+Controls (enforced in code, see research doc §7–§8): payout only after
+`approval_state = approved`; **maker–checker / SoD** between approver and
+releaser; **idempotency key mandatory** on every create (and on webhook
+handling — at-least-once delivery); **HMAC-verify** every webhook before acting;
+secrets stored as restricted system parameters, never in source; INR-only guard;
+optional **TDS** deduction (pay net) before disbursing; immutable audit of every
+state change (who released, idempotency key, provider ids, UTR).
+
+---
+
 ## Roles in the flow (§12.1)
 
 | Role | Acts at |
@@ -158,5 +229,6 @@ flowchart TD
 | Approver | Approve / reject / RFI / delegate within the resolved matrix |
 | Branch Finance | Branch-wide read, reimbursement prep, registers |
 | Finance Manager | Post / pay, budget edit |
-| Administrator | Masters, matrices, budgets, live approval amendments (no posting — SoD) |
+| Payout Releaser | Release approved electronic payouts (UPI/card/bank); must differ from the approver (SoD) — see Diagram 6 |
+| Administrator | Masters, matrices, budgets, payout-provider credentials, live approval amendments (no posting — SoD) |
 | Auditor | Read-everything via the amendment log & reports |
