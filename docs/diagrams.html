@@ -76,6 +76,19 @@
     </ol>
   </nav>
 
+  <section class="diagram" id="pain">
+    <h2>Pain points addressed</h2>
+    <p class="desc">What these flows remove versus manual petty-cash / expense / vendor-payment processes.</p>
+    <ul>
+      <li><strong>Untracked petty cash &amp; reconciliation gaps</strong> &rarr; imprest floats, thresholds, cash-count reconciliation (Diagram 5).</li>
+      <li><strong>Slow, opaque, unauditable approvals; "approve low, raise later"</strong> &rarr; dynamic approval matrix + engine-guarded lifecycle (Diagrams 1&ndash;3).</li>
+      <li><strong>Approver away / needs info / chain must change mid-flow</strong> &rarr; RFI, delegation, live audited add/remove of approvers (Diagram 3).</li>
+      <li><strong>Overspend found only after posting</strong> &rarr; pre-commitment budget with a reservation ledger (Diagram 4).</li>
+      <li><strong>Records edited/deleted to hide history; no SoD</strong> &rarr; no-delete-after-submit, immutable amendment log, requester &ne; approver &ne; poster &ne; releaser (Diagrams 2&ndash;3).</li>
+      <li><strong>Vendor payments made manually, double-paid, unreconciled</strong> &rarr; electronic payouts (UPI/cards/bank): idempotent create, signed webhooks, auto-reconciled <code>account.payment</code> (Diagram 6).</li>
+    </ul>
+  </section>
+
   <section class="diagram" id="d1">
     <h2>1. End-to-end process</h2>
     <p class="desc">Configuration → capture → submit → policy/budget checks → dynamic approval → posting → payment → dashboards.</p>

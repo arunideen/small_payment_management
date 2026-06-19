@@ -31,6 +31,22 @@ Key design decisions (justified in the body):
 
 Estimated delivery effort: **10–14 weeks** with a 2–3 person team (1 senior Odoo dev, 1 dev, 1 functional consultant/QA). Roadmap in §13.
 
+### 1.1 Pain points this solution addresses
+
+| # | Pain point (typical status quo) | How this solution fixes it | Section |
+|---|---|---|---|
+| P1 | Petty cash run on paper/spreadsheets — no live float balance, frequent reconciliation gaps, cash leakage, no custodian accountability | Imprest floats with computed book balance, replenishment thresholds, auto-replenishment suggestion (cron), periodic cash-count reconciliation with variance posting under its own approval | §6.3 |
+| P2 | Approvals over email/chat/paper — slow, lost, no audit trail, unclear who is next, bottlenecks; "approve low then raise the amount" abuse | Dynamic approval matrix auto-resolved by company + branch + expense type/category + amount band; ordered tiers (single/all/quorum); amount-change re-resolution; every action chatter-logged | §7.1–7.4 |
+| P3 | Real-life exceptions break the flow: approver on leave, needs clarification, or the chain must change mid-approval → stalls or full restart | Request for Information (pauses the SLA clock), standing + active-approver delegation, and live, audited add/remove of approvers with guardrails | §7.5–7.7 |
+| P4 | Overspend discovered only after posting — no control before money is committed | Operational pre-commitment budget with reservation ledger; off/warn/block enforcement per master; over-budget badge + utilization bar shown to approvers | §8 |
+| P5 | Weak segregation of duties (one person requests/approves/pays); records deleted to hide history; exceptions invisible to audit | SoD enforced in code (requester ≠ approver ≠ poster ≠ payout releaser); no unlink after submission; append-only amendment log; policy-exception report | §7.8, §12.1 |
+| P6 | No branch-level visibility or security; cannot produce branch P&L or budgets | Branch dimension + analytic tagging on every transaction; branch record rules; branch-filtered dashboards and reports | §4, §12.2 |
+| P7 | Management cannot see spend trends, budget vs actual or approval cycle time; employees cannot see the status of their own claims | Management and "My Wallet" OWL dashboards + a 13-report pack (registers, utilization, SLA/cycle time, exceptions) | §9, §11 |
+| P8 | Cash advances handed out but never tracked or settled | Advance model with outstanding ledger and settlement against later claims | §6.4 |
+| P9 | Reimbursements slow and manual | Reimbursement batches with optional electronic disbursement | §6.4, §6.5 |
+| P10 | Vendor payments made manually (cash/cheque/manual bank transfer) outside the system — disconnected from the approval, beneficiary keying errors, double-payments, no UTR/audit, manual bank reconciliation, slow (no UPI/instant rails), TDS not deducted, beneficiaries not KYC-verified | Optional vendor electronic payout integration: pay from approved documents via UPI/IMPS/NEFT/RTGS/card through an external payouts API; payout only after approval + segregated release; idempotency keys prevent double-payment; signed webhooks create and reconcile the `account.payment` and capture the UTR; beneficiary KYC/penny-drop; optional TDS deduction | §6.5 |
+| P11 | Enterprise licensing cost and cloud lock-in | Community Edition built from source, on-prem Docker, OCA/free third-party modules, no prebuilt Odoo image pulled | §10 |
+
 ---
 
 ## 2. Requirements Analysis

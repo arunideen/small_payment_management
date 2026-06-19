@@ -8,6 +8,22 @@
 
 ---
 
+## Pain points this integration fixes
+
+| Pain point (manual vendor payments today) | How the integration fixes it |
+|---|---|
+| Payment is disconnected from the approval — money can leave before/without sign-off | Payout is gated on `approval_state = approved` plus a segregated release step |
+| Beneficiary bank details keyed by hand → wrong-account payments | Beneficiary bank/VPA stored & verified (penny-drop / VPA check); provider fund account cached on the partner |
+| Double-payment on retries, duplicate clicks or duplicate webhooks | Mandatory idempotency key on create + webhook dedupe by event id; re-query status before any retry |
+| No real-time status; UTR captured manually (if at all) | Signed webhooks (+ status-poll fallback) drive state and store the UTR automatically |
+| Bank reconciliation done by hand against statements | On `processed`, the `account.payment` is created, posted and reconciled automatically |
+| Slow — NEFT batches only, no instant / 24×7 rail | UPI/IMPS instant rails alongside NEFT/RTGS, selected per payout |
+| Same person approves and releases the money | Maker–checker / SoD: the releaser must differ from the approver |
+| TDS not deducted; beneficiaries not KYC-verified | Optional TDS deduction (pay net); KYC/verification gate before first payout |
+| No payout audit or exception trail | Immutable per-payout audit (releaser, idempotency key, provider ids, UTR) + payout register |
+
+---
+
 ## 1. The single most important architectural fact
 
 The module already depends on Odoo's `account`, and Odoo ships a built-in **payment

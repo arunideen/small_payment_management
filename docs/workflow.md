@@ -6,6 +6,21 @@ references (§) point to `odoo19-petty-cash-expense-solution-report.md`.
 
 ---
 
+## Pain points addressed
+
+These flows exist to remove specific operational pain; each maps to the diagrams below.
+
+| Pain point | Removed by |
+|---|---|
+| Manual, untracked petty cash & reconciliation gaps | Diagram 5 (imprest cycle) + Diagram 1 |
+| Slow, opaque, unauditable approvals; "approve low, raise later" | Diagrams 1 & 3 (matrix + lifecycle) |
+| Approver away / needs info / chain must change mid-flow | Diagram 3 (RFI, delegation, live amendment) |
+| Overspend found only after posting | Diagram 4 (pre-commitment budget) |
+| Records edited/deleted to hide history; no segregation of duties | Diagram 2 (engine-guarded states) + Diagram 3 (immutable amendments) |
+| Vendor payments made manually, double-paid, unreconciled | Diagram 6 (electronic payout: idempotent create, signed webhook, reconciled `account.payment`) |
+
+---
+
 ## 1. End-to-end process
 
 ```mermaid

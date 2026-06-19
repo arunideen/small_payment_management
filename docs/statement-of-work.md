@@ -25,6 +25,27 @@ pack.
 This SOW defines the scope, deliverables, timeline and acceptance criteria for
 the engagement. The full technical design is in the referenced Solution Report.
 
+### 1.1 Pain points addressed
+
+The engagement targets concrete, recurring failures of manual / spreadsheet /
+email-based petty-cash, expense and vendor-payment processes:
+
+| Pain point (typical status quo) | How this solution fixes it |
+|---|---|
+| Petty cash run on paper/spreadsheets — no live float balance, reconciliation gaps, cash leakage, no custodian accountability | Imprest floats with computed balance, replenishment thresholds, auto-replenishment suggestion, cash-count reconciliation with variance posting under approval |
+| Approvals over email/chat/paper — slow, lost, no audit, unclear who is next, bottlenecks; "approve low then raise the amount" abuse | Dynamic approval matrix auto-resolved by company/branch/type/category/amount; ordered tiers (single/all/quorum); amount-change re-resolution; every action logged |
+| Real-life exceptions break the flow: approver on leave, needs clarification, or the chain must change mid-approval | Request for Information (pauses the SLA clock), standing + active-approver delegation, live audited add/remove of approvers with guardrails |
+| Overspend discovered only after posting — no control before money is committed | Operational pre-commitment budgets with a reservation ledger; off/warn/block enforcement; over-budget badge shown to approvers |
+| Weak segregation of duties (one person requests/approves/pays); records deleted to hide history; exceptions invisible to audit | SoD enforced in code (requester ≠ approver ≠ poster ≠ payout releaser); no deletion after submission; append-only amendment log; exception reports |
+| No branch-level visibility or security; cannot produce branch P&L or budgets | Branch dimension + analytic tagging on every transaction; branch record rules; branch-filtered dashboards and reports |
+| Management cannot see spend, budget vs actual or approval cycle time; staff cannot see their claim status | Management and "My Wallet" OWL dashboards + a full report pack (registers, utilization, SLA/cycle time, exceptions) |
+| Cash advances handed out but never tracked or settled; reimbursements slow and manual | Advance ledger with settlement against later claims; reimbursement batches |
+| Vendor payments made manually (cash/cheque/manual transfer) — disconnected from approval, beneficiary keying errors, double-payments, no UTR/audit, manual reconciliation, slow (no UPI/instant rails), TDS not deducted, beneficiaries not KYC-verified | Optional electronic vendor payout integration (S12/§4.3): pay from approved documents via UPI/IMPS/NEFT/RTGS/card; pay-after-approval + segregated release; idempotency prevents double-payment; signed webhooks create and reconcile the `account.payment` and capture the UTR; beneficiary KYC; optional TDS |
+| Enterprise licensing cost and cloud lock-in | Community Edition built from source, on-prem Docker, OCA/free modules, no prebuilt Odoo image |
+
+> See the Solution Report §1.1 for the detailed pain-point → solution mapping
+> with section references.
+
 ---
 
 ## 2. Objectives
